@@ -127,7 +127,7 @@ def pep(session):
     results = [('Статус', 'Количество')]
     for item in pep_info.items():
         results.append(item)
-    results.append(('Total',sum(pep_info.values())))
+    results.append(('Total', sum(pep_info.values())))
     return results
 
 
