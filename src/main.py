@@ -26,6 +26,8 @@ def whats_new(session):
         href = version_a_tag['href']
         version_link = urljoin(whats_new_url, href)
         response = get_response(session, version_link)
+        if response is None:
+            return
         soup = BeautifulSoup(response.text,
                              features='lxml')
         h1 = find_tag(soup, 'h1')
@@ -91,14 +93,13 @@ def download(session):
 
 def pep(session):
     response = get_response(session, PEP_URL)
+    if response is None:
+        return
     soup = BeautifulSoup(response.text, 'lxml')
     main_section = soup.find('section', attrs={'id': 'numerical-index'})
     section_tbody = main_section.find('tbody')
     tr = section_tbody.find_all('tr')
     abbreviation_pattern = r'[IPS][ADFPRSW]?'
-    status_pattern = r'(\bActive\b)|(\bAccepted\b)|(\bDeferred\b)|'\
-                     r'(\bDraft\b)|(\bFinal\b)|(\bProvisional\b)|'\
-                     r'(\bRejected\b)|(\bSuperseded\b)|(\bWithdrawn\b)'
     pep_info = {}
     for item in tqdm(tr):
         type_status = re.search(abbreviation_pattern, item.text).group()
@@ -114,11 +115,13 @@ def pep(session):
         pep_section = pep_soup.find('dl',
                                     attrs={'class':
                                            'rfc2822 field-list simple'})
-        status_card = re.search(status_pattern, pep_section.text)
-        if status_card is not None:
-            status_card = status_card.group()
-        else:
+        for i in range(len(pep_section.text.split())):
+            if pep_section.text.split()[i] == 'Status:':
+                status_card = pep_section.text.split()[i+1]
+                break
+        if status_card is None:
             logging.info(f'Статус PEP не найден: {pep_link}')
+            status_card = "Unknown status"
         pep_info[status_card] = pep_info.get(status_card, 0) + 1
         if status_card not in status_general:
             logging.info(f'Несовпадающие статусы: {pep_link}\n'
